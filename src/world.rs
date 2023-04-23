@@ -1,35 +1,38 @@
 use bevy::{prelude::*, render::mesh::Indices, render::render_resource::PrimitiveTopology};
 
-const extrapolation: f32 = 0.1;
+use crate::LOCAL_ZERO;
+
+const NUM_DIVISIONS: i32 = 100;
+const EXTRAPOLATION: f32 = 0.1;
+const INTERPOLATIONPOWER: i32 = 3;
+const BASE_COLOR: Color = Color::rgba(0.1, 0.2, 0.2, 0.2);
 
 pub fn spawn_world(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let c_ref = Vec3::new(-104017.675, 14.999, 1211459.201);
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    let num_divisions = 200;
-    let read = iraw
+    let read = INJECTION_RAW
         .split('\n')
         .map(|line| {
-            line.split(",")
+            line.split(',')
                 .map(|word| word.parse::<f32>().unwrap())
                 .collect()
         })
         .collect::<Vec<Vec<f32>>>();
-    let read2 = raw
+    let read2 = SHEETPILE_RAW_1
         .split('\n')
         .map(|line| {
-            line.split(",")
+            line.split(',')
                 .map(|word| word.parse::<f32>().unwrap())
                 .collect()
         })
         .collect::<Vec<Vec<f32>>>();
-    let read3 = raw2
+    let read3 = SHEETPILE_RAW_2
         .split('\n')
         .map(|line| {
-            line.split(",")
+            line.split(',')
                 .map(|word| word.parse::<f32>().unwrap())
                 .collect()
         })
@@ -37,17 +40,17 @@ pub fn spawn_world(
     let mut points: Vec<Point> = read
         .iter()
         .map(|numbers| Point {
-            coord: Vec3::new(-numbers[0], numbers[2], numbers[1]) - c_ref,
+            coord: Vec3::new(-numbers[0], numbers[2], numbers[1]) - LOCAL_ZERO,
         })
         .collect();
     read2.iter().for_each(|numbers| {
         points.push(Point {
-            coord: Vec3::new(-numbers[0], numbers[1] - numbers[3], numbers[2]) - c_ref,
+            coord: Vec3::new(-numbers[0], numbers[1] - numbers[3], numbers[2]) - LOCAL_ZERO,
         })
     });
     read3.iter().for_each(|numbers| {
         points.push(Point {
-            coord: Vec3::new(-numbers[0], numbers[1] - numbers[3], numbers[2]) - c_ref,
+            coord: Vec3::new(-numbers[0], numbers[1] - numbers[3], numbers[2]) - LOCAL_ZERO,
         })
     });
     // Generate vertices
@@ -55,25 +58,26 @@ pub fn spawn_world(
     let mut normals = vec![];
     let mut indices = vec![];
 
-    let mut xMin = f32::MAX;
-    let mut xMax = f32::MIN;
-    let mut zMin = f32::MAX;
-    let mut zMax = f32::MIN;
-    for point in &points {
-        xMin = xMin.min(point.coord.x);
-        xMax = xMax.max(point.coord.x);
-        zMin = zMin.min(point.coord.z);
-        zMax = zMax.max(point.coord.z);
-    }
-    xMin -= (xMax - xMin) * extrapolation;
-    xMax += (xMax - xMin) * extrapolation;
-    zMin -= (zMax - zMin) * extrapolation;
-    zMax += (zMax - zMin) * extrapolation;
+    let mut x_min = f32::MAX;
+    let mut x_max = f32::MIN;
+    let mut z_min = f32::MAX;
+    let mut z_max = f32::MIN;
 
-    for i in 0..=num_divisions {
-        for j in 0..=num_divisions {
-            let x = xMin - (i as f32 / num_divisions as f32) * (xMin - xMax);
-            let z = zMin - (j as f32 / num_divisions as f32) * (zMin - zMax);
+    points.iter().for_each(|point| {
+        x_min = x_min.min(point.coord.x);
+        x_max = x_max.max(point.coord.x);
+        z_min = z_min.min(point.coord.z);
+        z_max = z_max.max(point.coord.z);
+    });
+    x_min -= (x_max - x_min) * EXTRAPOLATION;
+    x_max += (x_max - x_min) * EXTRAPOLATION;
+    z_min -= (z_max - z_min) * EXTRAPOLATION;
+    z_max += (z_max - z_min) * EXTRAPOLATION;
+
+    for i in 0..=NUM_DIVISIONS {
+        for j in 0..=NUM_DIVISIONS {
+            let x = x_min - (i as f32 / NUM_DIVISIONS as f32) * (x_min - x_max);
+            let z = z_min - (j as f32 / NUM_DIVISIONS as f32) * (z_min - z_max);
 
             vertices.push(Vec3::new(
                 x,
@@ -85,11 +89,11 @@ pub fn spawn_world(
     }
 
     // Generate indices
-    for i in 0..num_divisions {
-        for j in 0..num_divisions {
-            let i0 = i * (num_divisions + 1) + j;
+    for i in 0..NUM_DIVISIONS {
+        for j in 0..NUM_DIVISIONS {
+            let i0 = i * (NUM_DIVISIONS + 1) + j;
             let i1 = i0 + 1;
-            let i2 = i0 + num_divisions + 1;
+            let i2 = i0 + NUM_DIVISIONS + 1;
             let i3 = i2 + 1;
             indices.push(i1 as u32);
             indices.push(i2 as u32);
@@ -107,7 +111,7 @@ pub fn spawn_world(
         .spawn(MaterialMeshBundle {
             mesh: meshes.add(mesh),
             material: materials.add(StandardMaterial {
-                base_color: Color::rgba(0.1, 0.2, 0.5, 0.9),
+                base_color: BASE_COLOR,
                 alpha_mode: AlphaMode::Premultiplied,
                 perceptual_roughness: 1.0,
                 ..default()
@@ -123,9 +127,6 @@ struct Point {
 }
 
 impl Point {
-    fn get_distance(&self, other: Vec3) -> f32 {
-        (self.coord).distance(other)
-    }
     fn get_distance_xz(&self, other: Vec3) -> f32 {
         ((self.coord.x - other.x).powi(2) + (self.coord.z - other.z).powi(2))
             .sqrt()
@@ -137,13 +138,13 @@ fn get_weighted_y(points: &[Point], point: Vec3) -> f32 {
     let mut y_accumulator = 0.0;
     let mut distance_accumulator = 0.0;
     for p in points {
-        let dist = p.get_distance_xz(point).powi(2);
+        let dist = p.get_distance_xz(point).powi(INTERPOLATIONPOWER);
         y_accumulator += p.coord.y / dist;
         distance_accumulator += 1.0 / dist;
     }
     y_accumulator / distance_accumulator
 }
-const iraw: &str = "103700.870,1211475.510,14.680,-2.570,14.180,9.680,0.000,0.000
+const INJECTION_RAW: &str = "103700.870,1211475.510,14.680,-2.570,14.180,9.680,0.000,0.000
 103703.990,1211475.160,15.200,-2.250,14.700,10.200,0.000,0.000
 103706.960,1211474.630,14.740,-3.060,14.240,9.740,0.000,0.000
 103709.910,1211474.230,15.590,-2.050,15.090,10.590,0.000,0.000
@@ -635,7 +636,8 @@ const iraw: &str = "103700.870,1211475.510,14.680,-2.570,14.180,9.680,0.000,0.00
 104198.850,1211547.340,15.710,-11.290,15.210,10.710,10.000,1.000
 104199.220,1211545.990,15.790,-11.350,15.290,10.790,500.000,500.000
 104199.280,1211544.610,15.210,-11.650,14.710,10.210,8.000,30.000";
-const raw: &str = "104017.675,14.999,1211459.201,2.8
+
+const SHEETPILE_RAW_1: &str = "104017.675,14.999,1211459.201,2.8
 104016.985,15.061,1211458.756,3.4
 104016.183,14.996,1211458.929,4.28
 104015.433,15.006,1211458.557,4.94
@@ -740,7 +742,7 @@ const raw: &str = "104017.675,14.999,1211459.201,2.8
 103943.832,14.049,1211443.766,16.3
 103943.124,14.036,1211443.413,15";
 
-const raw2: &str = "103943.124,14.036,1211443.413,15
+const SHEETPILE_RAW_2: &str = "103943.124,14.036,1211443.413,15
 103942.359,14.025,1211443.72,15.5
 103941.643,14.055,1211443.365,15.5
 103940.876,14.032,1211443.646,15.5

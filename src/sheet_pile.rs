@@ -1,15 +1,26 @@
 use bevy::prelude::*;
 
+use crate::LOCAL_ZERO;
+
 const HEIGHT: f32 = 0.3;
 const WIDTH: f32 = 0.175;
 const THICKNESS: f32 = 0.01;
 const COLOR: Color = Color::rgb(0.8, 0.2, 0.2);
 
+pub struct SheetPilePlugin;
+
+impl Plugin for SheetPilePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_startup_system(spawn_sheet_pile)
+            .add_startup_system(spawn_sheet_pile2)
+            .add_startup_system(spawn_sheet_pile3)
+            .register_type::<SheetPile>();
+    }
+}
+
 #[derive(Reflect, Component, Default)]
 #[reflect(Component)]
-pub struct SheetPile {
-    pub shooting_timer: Timer,
-}
+pub struct SheetPile {}
 
 struct SheetPileGeom {
     c_start: Vec3,
@@ -53,20 +64,19 @@ pub fn spawn_sheet_pile(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let read = raw
+    let read = RAW
         .split('\n')
         .map(|line| {
-            line.split(",")
+            line.split(',')
                 .map(|word| word.parse::<f32>().unwrap())
                 .collect()
         })
         .collect::<Vec<Vec<f32>>>();
 
     let mut leading = false;
-    let c_ref = Vec3::new(-104017.675, 14.999, 1211459.201);
     for idx in 0..read.len() - 1 {
-        let c_start = Vec3::new(-read[idx][0], read[idx][1], read[idx][2]) - c_ref;
-        let c_end = Vec3::new(-read[idx + 1][0], read[idx + 1][1], read[idx + 1][2]) - c_ref;
+        let c_start = Vec3::new(-read[idx][0], read[idx][1], read[idx][2]) - LOCAL_ZERO;
+        let c_end = Vec3::new(-read[idx + 1][0], read[idx + 1][1], read[idx + 1][2]) - LOCAL_ZERO;
 
         leading = !leading;
         let sheet_pile = SheetPileGeom {
@@ -110,20 +120,19 @@ pub fn spawn_sheet_pile2(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let read = raw2
+    let read = RAW2
         .split('\n')
         .map(|line| {
-            line.split(",")
+            line.split(',')
                 .map(|word| word.parse::<f32>().unwrap())
                 .collect()
         })
         .collect::<Vec<Vec<f32>>>();
 
     let mut leading = true;
-    let c_ref = Vec3::new(-104017.675, 14.999, 1211459.201);
     for idx in 0..read.len() - 1 {
-        let c_start = Vec3::new(-read[idx][0], read[idx][1], read[idx][2]) - c_ref;
-        let c_end = Vec3::new(-read[idx + 1][0], read[idx + 1][1], read[idx + 1][2]) - c_ref;
+        let c_start = Vec3::new(-read[idx][0], read[idx][1], read[idx][2]) - LOCAL_ZERO;
+        let c_end = Vec3::new(-read[idx + 1][0], read[idx + 1][1], read[idx + 1][2]) - LOCAL_ZERO;
 
         leading = !leading;
         let sheet_pile = SheetPileGeom {
@@ -167,20 +176,19 @@ pub fn spawn_sheet_pile3(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let read = raw3
+    let read = RAW3
         .split('\n')
         .map(|line| {
-            line.split(",")
+            line.split(',')
                 .map(|word| word.parse::<f32>().unwrap())
                 .collect()
         })
         .collect::<Vec<Vec<f32>>>();
 
     let mut leading = false;
-    let c_ref = Vec3::new(-104017.675, 14.999, 1211459.201);
     for idx in 0..read.len() - 1 {
-        let c_start = Vec3::new(-read[idx][0], read[idx][1], read[idx][2]) - c_ref;
-        let c_end = Vec3::new(-read[idx + 1][0], read[idx + 1][1], read[idx + 1][2]) - c_ref;
+        let c_start = Vec3::new(-read[idx][0], read[idx][1], read[idx][2]) - LOCAL_ZERO;
+        let c_end = Vec3::new(-read[idx + 1][0], read[idx + 1][1], read[idx + 1][2]) - LOCAL_ZERO;
 
         leading = !leading;
         let sheet_pile = SheetPileGeom {
@@ -219,7 +227,7 @@ pub fn spawn_sheet_pile3(
         }
     }
 }
-const raw: &str = "104017.675,14.999,1211459.201,2.8
+const RAW: &str = "104017.675,14.999,1211459.201,2.8
 104016.985,15.061,1211458.756,3.4
 104016.183,14.996,1211458.929,4.28
 104015.433,15.006,1211458.557,4.94
@@ -324,7 +332,7 @@ const raw: &str = "104017.675,14.999,1211459.201,2.8
 103943.832,14.049,1211443.766,16.3
 103943.124,14.036,1211443.413,15";
 
-const raw2: &str = "103943.124,14.036,1211443.413,15
+const RAW2: &str = "103943.124,14.036,1211443.413,15
 103942.359,14.025,1211443.72,15.5
 103941.643,14.055,1211443.365,15.5
 103940.876,14.032,1211443.646,15.5
@@ -364,7 +372,7 @@ const raw2: &str = "103943.124,14.036,1211443.413,15
 103916.517,14.016,1211437.864,18.1
 103915.93,14.031,1211437.364,18.05";
 
-const raw3: &str = "103911.577,14.046,1211436.293,18.03
+const RAW3: &str = "103911.577,14.046,1211436.293,18.03
 103910.892,14.054,1211435.797,18.18
 103910.112,14.055,1211435.926,15.36
 103909.448,14.055,1211435.488,15.6
